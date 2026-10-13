@@ -1,0 +1,45 @@
+const assert=require('assert/strict');
+const path=require('path');
+const engine=require(path.resolve(__dirname,'../extension/organizer/engine.js'));
+let serial=0; const stamp='2026-10-03T08:00:00Z';
+function make(n,preset='local') {
+ let state=engine.emptyOrganizer();const send=(action,data={})=>state=engine.reduce(state,{revision:state.revision,action,eventId:'event',data},`id-${++serial}`,stamp);
+ state=engine.reduce(state,{revision:0,action:'create',data:{name:'Test',preset}},'event',stamp);
+ send('addPlayers',{players:Array.from({length:n},(_,i)=>({name:`Player ${i+1}`,country:'PK',team:''}))});send('checkAll');send('start');
+ return {get state(){return state},get event(){return state.events[0]},send};
+}
+let scenarios=0,matches=0;let rng=19;const random=()=>{rng=(rng*1664525+1013904223)>>>0;return rng/4294967296};
+for(const format of ['local','single'])for(const count of [2,3,5,8,17,64,256,512]){
+ const t=make(count,format);let steps=0;
+ while(!t.event.champion){
+  const available=t.event.matches.filter(m=>m.status==='ready');assert(available.length,`deadlock ${format} ${count}`);
+  const m=available[Math.floor(random()*available.length)];assert.notEqual(m.players[0],m.players[1]);assert(m.players.every(Boolean));
+  const win=random()>.5?0:1;const scores=win===0?[m.ft,Math.floor(random()*m.ft)]:[Math.floor(random()*m.ft),m.ft];t.send('report',{matchId:m.id,scores});
+  assert(++steps<count*3,'non-terminating bracket');
+ }
+ const ranked=engine.standings(t.event);assert.equal(ranked.length,count);assert.equal(new Set(ranked.map(x=>x.id)).size,count);assert.equal(ranked[0].place,1);
+ if(format==='local') {ranked.filter(x=>x.place!==1).forEach(x=>assert.equal(x.losses,2,`wrong loss count ${count} ${x.id}`));assert([count*2-2,count*2-1].includes(steps));}
+ else {ranked.filter(x=>x.place!==1).forEach(x=>assert.equal(x.losses,1));assert.equal(steps,count-1);}
+ assert(!t.event.matches.some(m=>['waiting','ready','playing'].includes(m.status)));
+ if(count===17){const restored=engine.restoreEvent(t.event,'restored',stamp);assert.equal(restored.entrants.find(p=>p.id===restored.champion).name,t.event.entrants.find(p=>p.id===t.event.champion).name);assert.deepEqual(engine.standings(restored).map(x=>[x.place,x.wins,x.losses]),ranked.map(x=>[x.place,x.wins,x.losses]));}
+ matches+=steps;scenarios++;
+}
+const gsl=make(32,'ewc');assert.equal(gsl.event.matches.length,67);
+while(!gsl.event.champion){const m=gsl.event.matches.find(m=>m.status==='ready');assert(m,'GSL deadlock');gsl.send('report',{matchId:m.id,scores:random()>.5?[m.ft,0]:[0,m.ft]});}
+assert.equal(engine.standings(gsl.event).length,32);assert.equal(gsl.event.results.length,67);assert.equal(gsl.event.matches.filter(m=>m.section==='Playoffs').length,7);
+const restoredGsl=engine.restoreEvent(gsl.event,'gsl-copy',stamp);assert.equal(restoredGsl.results.length,67);
+const t=make(8);const m=t.event.matches.find(m=>m.status==='ready');
+const linked='12345678901234567';t.send('linkDiscord',{name:'Player 1',discordId:linked});assert.equal(t.event.entrants.find(p=>p.name==='Player 1').discordId,linked);assert.throws(()=>t.send('linkDiscord',{name:'Player 2',discordId:linked}),/already linked/);assert.throws(()=>t.send('linkDiscord',{name:'Player 2',discordId:'bad-id'}),/Invalid Discord/);
+assert.throws(()=>t.send('report',{matchId:m.id,scores:[1,0]}),/required/);
+assert.throws(()=>t.send('score',{matchId:m.id,scores:[2,2]}),/Both/);
+assert.throws(()=>t.send('score',{matchId:m.id,scores:[NaN,0]}),/whole/);
+assert.throws(()=>engine.reduce(t.state,{revision:0,action:'checkAll',eventId:'event'},'unused',stamp),/operator/);
+const sideTest=make(4);let sideMatch=sideTest.event.matches.find(x=>x.status==='ready');const originalPlayers=sideMatch.players.slice();sideTest.send('assign',{matchId:sideMatch.id,station:'Stream'});sideTest.send('score',{matchId:sideMatch.id,scores:[1,0]});sideTest.send('swapSides',{matchId:sideMatch.id});sideMatch=sideTest.event.matches.find(x=>x.id===sideMatch.id);assert.deepEqual(sideMatch.players,[originalPlayers[1],originalPlayers[0]]);assert.deepEqual(sideMatch.scores,[0,1]);assert.equal(sideMatch.station,'Stream');sideTest.send('report',{matchId:sideMatch.id,scores:[0,2]});assert.equal(sideTest.event.matches.find(x=>x.id===sideMatch.id).winner,originalPlayers[0]);assert.throws(()=>sideTest.send('swapSides',{matchId:sideMatch.id}),/ready or playing/);
+const endTest=make(4);let endMatch=endTest.event.matches.find(x=>x.status==='ready');endTest.send('assign',{matchId:endMatch.id,station:'Stream'});endTest.send('score',{matchId:endMatch.id,scores:[1,0]});endTest.send('endEvent');endMatch=endTest.event.matches.find(x=>x.id===endMatch.id);assert.equal(endTest.event.ended,true);assert.equal(endMatch.status,'ready');assert.equal(endMatch.station,'');assert.deepEqual(endMatch.scores,[1,0]);assert.throws(()=>endTest.send('report',{matchId:endMatch.id,scores:[2,0]}),/has ended/);const endedBackup=engine.restoreEvent(JSON.parse(JSON.stringify(endTest.event)),'ended-copy',stamp);assert.equal(endedBackup.ended,true);endTest.send('resumeEvent');assert.equal(endTest.event.ended,false);endTest.send('assign',{matchId:endMatch.id,station:'Stream'});assert.equal(endTest.event.matches.find(x=>x.id===endMatch.id).status,'playing');
+let draftState=engine.emptyOrganizer();draftState=engine.reduce(draftState,{revision:0,action:'create',data:{name:'Draft end test'}},'draft-event',stamp);const draftSend=(action,data={})=>draftState=engine.reduce(draftState,{revision:draftState.revision,action,eventId:'draft-event',data},`draft-${++serial}`,stamp);draftSend('endEvent');assert.equal(draftState.events[0].ended,true);assert.throws(()=>draftSend('addPlayers',{players:[{name:'Blocked'}]}),/has ended/);draftSend('resumeEvent');draftSend('addPlayers',{players:[{name:'Allowed'}]});assert.equal(draftState.events[0].entrants.length,1);
+let deleteState=engine.emptyOrganizer();deleteState=engine.reduce(deleteState,{revision:0,action:'create',data:{name:'Keep me'}},'keep-event',stamp);deleteState=engine.reduce(deleteState,{revision:deleteState.revision,action:'create',data:{name:'Remove me'}},'remove-event',stamp);deleteState=engine.reduce(deleteState,{revision:deleteState.revision,action:'deleteEvent',eventId:'remove-event'},'delete-command',stamp);assert.deepEqual(deleteState.events.map(e=>e.id),['keep-event']);assert.throws(()=>engine.reduce(deleteState,{revision:deleteState.revision,action:'deleteEvent',eventId:'missing'},'bad-delete',stamp),/Select a tournament/);assert.equal(deleteState.revision,3);
+t.send('assign',{matchId:m.id,station:'Stream'});const m2=t.event.matches.find(x=>x.status==='ready');assert.throws(()=>t.send('assign',{matchId:m2.id,station:'Stream'}),/occupied/);
+t.send('report',{matchId:m.id,scores:[2,0]});t.send('undo');assert.equal(t.event.matches.find(x=>x.id===m.id).status,'ready');assert.equal(t.event.results.length,0);
+t.send('report',{matchId:m.id,scores:[0,0],forfeit:1,reason:'No show'});assert.equal(t.event.matches.find(x=>x.id===m.id).winner,m.players[0]);
+const two=make(2);let gf=two.event.matches.find(m=>m.status==='ready');two.send('report',{matchId:gf.id,scores:[gf.ft,0]});gf=two.event.matches.find(m=>m.status==='ready');two.send('report',{matchId:gf.id,scores:[0,gf.ft]});assert.equal(two.event.champion,'');let reset=two.event.matches.find(m=>m.status==='ready');assert.equal(reset.label,'Grand final reset');two.send('report',{matchId:reset.id,scores:[reset.ft,0]});assert(two.event.champion);two.send('undo');assert.equal(two.event.champion,'');
+console.log(JSON.stringify({status:'PASS',fullTournaments:scenarios+1,reportedMatches:matches+67,checks:['2–512 entrants','single and double elimination','non-power-of-two byes','two GSL phases and playoffs','one champion and complete standings','loss counts','grand-final reset','P1/P2 swap keeps player scores attached','completed matches cannot be swapped','end before/after bracket start','ending releases active stations and blocks edits','ended backups and resume','delete one event while retaining others','unknown event cannot be deleted','score validation','forfeit','station collision','stale revision','undo','backup replay']},null,2));

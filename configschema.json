@@ -1,0 +1,12 @@
+{
+  "$schema": "http://json-schema.org/schema#",
+  "type": "object",
+  "properties": {
+    "discordApiSecret": {
+      "type": "string",
+      "default": "",
+      "description": "Shared secret for the optional local Runback Discord bot bridge. Keep private."
+    }
+  },
+  "additionalProperties": true
+}

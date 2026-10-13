@@ -1,0 +1,47 @@
+/* Shared broadcast desk styling; preserves the user's light/dark preference. */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: #697287; border-radius: 8px; }
+.theme--dark.v-application { background: #0c1019 !important; }
+.theme--light.v-application { background: #edf0f6 !important; }
+.v-application .v-main { background-image: radial-gradient(ellipse at top right, #ff416410, transparent 60%); }
+.v-application .v-navigation-drawer { border-right: 1px solid #72809625; }
+.v-application .v-navigation-drawer .v-list-item { margin-bottom: 10px; border-radius: 8px; }
+.v-application .v-navigation-drawer .v-list-item--active { border-left: 3px solid #ff4164; }
+.v-application .v-card { border: 1px solid #72809630; border-radius: 14px; box-shadow: 0 8px 28px #00000015 !important; overflow: hidden; }
+.theme--dark.v-card, .theme--dark.v-navigation-drawer { background-color: #141b28 !important; }
+.v-application .v-card .v-toolbar.primary { background: #1c2536 !important; box-shadow: none; border-bottom: 1px solid #72809630; }
+.v-application .v-toolbar__title { font-size: 16px; font-weight: 600; letter-spacing: .3px; }
+.v-application .v-card__text { padding: 24px; }
+.v-application .v-btn { border-radius: 7px; text-transform: none; letter-spacing: .2px; }
+.v-application .v-btn.primary { box-shadow: none; }
+.broadcast-desk { max-width: 1600px; padding: 24px !important; }
+.desk-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; margin-bottom: 24px; }
+.eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; color: #dc385a; }
+.desk-heading h1 { font-size: 42px; letter-spacing: -1.5px; line-height: 1.4; }
+.desk-heading h1 span { color: #ff4164; }
+.desk-heading p { margin: 3px 0 0; opacity: .65; }
+.hud-note { padding: 14px 18px; margin-bottom: 18px; border: 1px solid #43d9ee35; border-radius: 8px; font-size: 13px; background: #43d9ee08; }
+.hud-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #43d9ee; margin-right: 9px; }
+.note-detail { opacity: .65; margin-left: 16px; }
+.player { padding: 18px; border-radius: 10px; border: 1px solid #72809630; border-top: 3px solid #ff4164; }
+.player.player-1 { border-top-color: #43d9ee; }
+.player-label { font-size: 11px; letter-spacing: 2px; font-weight: 700; opacity: .7; margin-bottom: 16px; }
+.score-stepper { display: flex; align-items: center; justify-content: center; gap: 18px; margin: 22px 0; }
+.score-value { font-size: 58px; font-weight: 700; line-height: 1; min-width: 74px; text-align: center; font-variant-numeric: tabular-nums; }
+.score-caption { text-align: center; font-size: 10px; letter-spacing: 2px; opacity: .6; }
+.v-application { font-family:Roboto,"Segoe UI",sans-serif!important; }
+.v-application .v-main { min-height:100vh; }
+.v-application .v-navigation-drawer { background:#141b28!important; }
+.v-application .v-navigation-drawer .v-list-item__subtitle { color:#96a3b7!important; font-size:10px; }
+.v-application .v-navigation-drawer .v-list-item__subtitle a { color:#d6f58b; }
+.v-application .v-data-table,.v-application .v-data-table>.v-data-table__wrapper>table { background:#171e29!important; }
+.v-application .v-data-table-header { background:#1d2634; }
+.v-application .v-data-table th { color:#a8b5c8!important; font-size:10px!important; letter-spacing:.7px; }
+.v-application .v-data-table td { border-color:#30394a!important; }
+.v-application .v-toolbar.v-sheet { background:transparent!important; }
+.v-application .v-list-item { min-height:54px; }
+.v-application .v-input__control>.v-input__slot { border-radius:7px!important; }
+.v-application .v-card__title { color:#f1f4f9; font-size:18px; }
+.v-application .v-dialog>.v-card { background:#171e29!important; color:#f1f4f9!important; }
+.v-application .desk-heading { padding-top:6px; }
+@media (max-width: 700px) { .broadcast-desk { padding: 10px !important; } .desk-heading { align-items: flex-start; flex-direction: column; } .desk-heading h1 { font-size: 32px; } .note-detail { display: block; margin: 8px 0 0; } .v-application .v-card__text { padding: 16px; } }
