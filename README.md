@@ -1,192 +1,83 @@
-> **Tournament Desk edition:** Read [START-HERE.md](START-HERE.md) for the new organizer, installation and Windows build instructions. The original Runback project was created by Opeik (Sandro Stikić); this tournament-focused edition is maintained by Sheeda Talli and remains under GPL-3.0. See the Windows build and feature guide in [START-HERE.md](START-HERE.md). Windows installers are published in [Releases](https://github.com/SheedaMusalli/Runback-Tournament-Desk/releases).
+# Runback Tournament Desk
 
-[![Contributors][contributors-shield]][contributors-url]
-[![Forks][forks-shield]][forks-url]
-[![Stargazers][stars-shield]][stars-url]
-[![Issues][issues-shield]][issues-url]
-[![License][license-shield]][license-url]
+**A Tekken 8 tournament organizer and broadcast desk, built on Runback.** Manage local events from player check-in through final standings, run matches, send scores to OBS, and share a live bracket.
 
-<!-- PROJECT LOGO -->
-<br />
-<p align="center">
-  <a href="https://github.com/opeik/runback">
-    <img src="https://raw.githubusercontent.com/opeik/runback/dd6ae2fb89757746fa2251d18b39de86e1f88aa2/src/dashboard/runback/_img/runback-logo-light.svg" alt="Logo" width="120" height="120">
-  </a>
+> This is the Sheeda Talli tournament-focused edition of Runback. The original Runback project was created by Opeik (Sandro Stikić); the original broadcast tools remain included. Licensed under GPL-3.0.
 
-  <h3 align="center">Runback</h3>
+[Download the latest Windows installer](https://github.com/SheedaMusalli/Runback-Tournament-Desk/releases/latest) · [Read the operator guide](START-HERE.md) · [View format research](RESEARCH.md)
 
-  <p align="center">
-    Broadcast graphics for fighting games
-    <br />
-    <a href="https://github.com/opeik/runback/releases/latest">Download</a>
-    ·
-    <a href="https://github.com/opeik/runback/issues">Report Bug</a>
-    ·
-    <a href="https://github.com/opeik/runback/issues">Request Feature</a>
-  </p>
-</p>
+## What you can do
 
-<!-- TABLE OF CONTENTS -->
-<details open="open">
-  <summary><h2 style="display: inline-block">Table of Contents</h2></summary>
-  <ol>
-    <li>
-      <a href="#about-the-project">About The Project</a>
-      <ul>
-        <li><a href="#built-with">Built With</a></li>
-      </ul>
-    </li>
-    <li><a href="#screenshots">Screenshots</a></li>
-    <li>
-      <a href="#getting-started">Getting Started</a>
-      <ul>
-        <li><a href="#prerequisites">Prerequisites</a></li>
-        <li><a href="#building">Building</a></li>
-      </ul>
-    </li>
-    <li><a href="#usage">Usage</a></li>
-    <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
-  </ol>
-</details>
+- **Run an event:** keep multiple tournaments, track event status and history, and use an overview that points to the next task.
+- **Register and check in players:** add names one by one, paste a list, import CSV/TXT, or reuse Runback's saved player library. Search, seed, and check entrants in before the bracket is made.
+- **Build brackets:** run seeded single or double elimination for 2–512 entrants, with byes, loser advancement, grand-final resets, configurable set lengths, and a connected bracket view. Choose from seven format presets, including an EWC 2025-inspired 32-player group-to-playoff format.
+- **Call and report matches:** assign stations, call players, switch P1/P2 sides, record live set scores, confirm results, undo the latest result, and handle forfeits with a reason.
+- **Keep the event moving:** use the run of show, station status, player call timers, stream queue, staff notes, and incident tracking.
+- **Broadcast:** send the selected match and score to Runback's OBS browser overlays. The Tekken 8 scoreboard leaves the game HUD area clear and keeps tournament stage information below the timer.
+- **Share results:** publish a read-only live bracket link for viewers and export event backups or final standings.
+- **Keep event history:** save multiple local events, reopen previous tournaments, and restore a JSON event backup as a separate event.
 
-## About The Project
+The app also retains Runback's player library, manual broadcast controls, commentator overlay, and display settings under **More tools**.
 
-![Runback Screen Shot 1][product-screenshot1]
+## Get the Windows app
 
-Runback is a broadcast graphics system designed for fighting games tournaments, featuring:
+1. Open the [latest release](https://github.com/SheedaMusalli/Runback-Tournament-Desk/releases/latest).
+2. Download `Runback-Tournament-Desk-Setup-v0.4.2.exe` and run it.
+3. Start Runback Tournament Desk from the installed app or Start menu.
+4. Create an event, add and check in players, generate the bracket, then work through **Match queue → Bracket → Stream → Results**.
 
-- Scoreboard and commentator overlays
-- Player management
-- Player import and export
-- Player detail overrides for on-the-fly editing
-- Auto gamertag Latinization for non-Latin scripts
-- smash.gg integration
-  - Import tournament entrant data
-- Light and dark mode
-- Windows, macOS, Linux support
+Windows may display a SmartScreen notice because this installer is not code-signed. Download it from this repository's Releases page. A SHA-256 checksum file is attached to the release for verification.
 
-### Built With
+### First event, step by step
 
-- [NodeCG](https://github.com/nodecg/nodecg)
-- [Electron](https://github.com/electron/electron)
-- [Vue.js](https://github.com/vuejs/vue)
+1. Choose **Create event** and a format preset. Use **Local weekly** for a standard double-elimination tournament.
+2. Add players individually or import a list. Optional CSV fields are `team`, `country`, and `discord_id`.
+3. Mark players as checked in and adjust their seed order.
+4. Generate the bracket. Only checked-in players enter; the entrant list and rules lock for the active bracket.
+5. Open a ready match, assign a station, and call the players. Switch P1/P2 if the players request sides.
+6. Use **Send to OBS** and save each game's live score. **Report result** records the set and advances the bracket.
+7. Review placements in Results, then export standings or an event backup.
 
-## Screenshots
+Use **Try a sample event** to explore the workflow with fictional entrants. It does not represent historical tournament data.
 
-![Runback Screen Shot 2][product-screenshot2]
-![Runback Screen Shot 3][product-screenshot3]
+## OBS and shared bracket
 
-## Getting Started
+The scoreboard overlay is available at:
 
-To get a local copy up and running follow these simple steps.
+```text
+http://localhost:9090/bundles/runback/graphics/scoreboard.html
+```
 
-### Prerequisites
+Add it to OBS as a **Browser Source** at **1920 × 1080** and **60 FPS**. Keep Runback running. Check the overlay against your Tekken 8 capture and align the sources without cropping or stretching the scoreboard independently.
 
-- git
-- npm
-- yarn
-- node
+In **Bracket**, select **Share this live bracket** to copy a read-only URL. A `localhost` or `127.0.0.1` link works only on the organizer's machine. For remote viewers, configure **Public server URL** with a reachable public address or secure tunnel before sharing. Runback must remain online for the page to update.
 
-### Building
+## Optional Discord integration
 
-1. Clone NodeCG
-   ```sh
-   git clone https://github.com/nodecg/nodecg
-   ```
-2. Install NodeCG npm packages
+Runback includes a locally authenticated bridge API that a separate Discord companion bot can use for match calls and results. **The companion bot, Discord bot token, and server credentials are not included in this repository.** The bridge is disabled until an administrator configures it. See [START-HERE.md](START-HERE.md) for the boundary and setup notes.
 
-   ```sh
-   cd nodecg && npm install --production
-   ```
+## Build from source
 
-3. Clone runback
+The repository contains the Runback bundle source, browser/extension build files, tests, and a Windows build script. It does not include NodeCG, the separate Electron wrapper project, or a prebuilt installer in the source tree.
 
-   ```sh
-   cd bundles && git clone https://github.com/opeik/runback
-   cd runback && git submodule update --init --recursive
-   ```
+Requirements: Windows, Git, Node.js/npm, and internet access for the pinned build dependencies. The source guide records the tested tool versions and compatibility notes.
 
-4. Install runback npm packages
+```powershell
+git clone https://github.com/SheedaMusalli/Runback-Tournament-Desk.git
+cd Runback-Tournament-Desk
+powershell -NoProfile -ExecutionPolicy Bypass -File .\Build-Windows.ps1
+```
 
-   ```sh
-   yarn install
-   ```
+The script creates a timestamped build directory and packages an unsigned Windows installer; it does not publish a release. For the detailed NodeCG setup, tests, installer output location, compatibility limits, and troubleshooting, follow [START-HERE.md](START-HERE.md).
 
-5. Build runback
+## Event formats and data boundaries
 
-   ```sh
-   yarn watch
-   ```
+Presets include Local weekly, EVO-style open bracket, EVO Japan 2026, CEO 2026, TWT 2026 Dojo-style, EWC 2025-inspired, and Quick knockout. The Event Library is a curated set of event references and lessons, not a complete record of every Tekken 8 tournament ever held. Format inspiration is documented in [RESEARCH.md](RESEARCH.md); the EWC-inspired bracket is not an official event draw.
 
-6. Start the NodeCG server
+Events and player data are stored locally by NodeCG. Back up event data before moving installations. The app does not provide online registration or payments, official circuit rankings, Start.gg result synchronization, or a complete public tournament archive. The Discord bridge does not upload private player data unless an administrator configures and operates the separate bot.
 
-   ```sh
-   node ../..
-   ```
+## Credits and license
 
-7. Open http://localhost:9090/
+Runback was originally created by **Opeik (Sandro Stikić)**. This Tekken 8 tournament-focused edition and its redesign are by **Sheeda Talli**. Original attribution and notices are preserved in [NOTICES.md](NOTICES.md).
 
-## Usage
-
-### Installing
-
-- Download runback from the [releases page](https://github.com/opeik/runback/releases/latest)
-- Once installed, open runback; the Dashboard tab will open
-
-### Importing overlays
-
-- Open the Graphics tab
-- Click and drag from the "Drag into OBS" button into OBS for the overlay you wish to import
-  - If you're on macOS, click and drag isn't supported in OBS; use the settings below
-- Edit the newly created Browser Source, set:
-  - FPS to **60**
-  - Shutdown source when not visible to **ON**
-  - Refresh browser when scene becomes available to **ON**
-- [Screenshot](https://i.imgur.com/AsOmUPY.png) for reference
-
-### Setup smash.gg integration
-
-- Create a [smash.gg API key](https://developer.smash.gg/docs/authentication)
-- Enter the key in Settings→Set API Keys
-
-### Import players from smash.gg
-
-- Open the Dashboard tab
-- Click "Set Tournament" and enter the tournament URL
-- Click "Fetch Entrants"
-  - The players will be imported and can be found in the Players tab
-
-## Roadmap
-
-See the [open issues](https://github.com/opeik/runback/issues) for a list of proposed features (and known issues).
-
-## Contributing
-
-Any contributions you make are **greatly appreciated**.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/amazing-feature`)
-3. Commit your Changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the Branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## License
-
-Distributed under the GPLv3 License. See `LICENSE.md` for more information.
-
-[contributors-shield]: https://img.shields.io/github/contributors/opeik/runback.svg?style=for-the-badge
-[contributors-url]: https://github.com/opeik/runback/graphs/contributors
-[forks-shield]: https://img.shields.io/github/forks/opeik/runback.svg?style=for-the-badge
-[forks-url]: https://github.com/opeik/runback/network/members
-[stars-shield]: https://img.shields.io/github/stars/opeik/runback.svg?style=for-the-badge
-[stars-url]: https://github.com/opeik/runback/stargazers
-[issues-shield]: https://img.shields.io/github/issues/opeik/runback.svg?style=for-the-badge
-[issues-url]: https://github.com/opeik/runback/issues
-[license-shield]: https://img.shields.io/github/license/opeik/runback.svg?style=for-the-badge
-[license-url]: https://github.com/opeik/runback/blob/master/LICENSE.md
-[product-screenshot1]: https://i.imgur.com/lBs6iE1.png
-[product-screenshot2]: https://i.imgur.com/Brtca30.png
-[product-screenshot3]: https://i.imgur.com/cAYt0CP.png
-
+This project is distributed under the **GNU General Public License v3.0**. See [LICENSE.md](LICENSE.md).
