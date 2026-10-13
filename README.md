@@ -1,6 +1,4 @@
-> **Tournament Desk edition:** Read [START-HERE.md](START-HERE.md) for the new organizer, installation and Windows build instructions. The material below is the original upstream README.
-
-This repository contains the Runback Tournament Desk source maintained by Sheeda Talli, based on the original Runback application by Opeik (Sandro Stikić). It is distributed under GPL-3.0; retain the included license and notices when redistributing. The Windows installer is published under [GitHub Releases](https://github.com/SheedaMusalli/Runback-Tournament-Desk/releases).
+> **Tournament Desk edition:** Read [START-HERE.md](START-HERE.md) for the new organizer, installation and Windows build instructions. The original Runback project was created by Opeik (Sandro Stikić); this tournament-focused edition is maintained by Sheeda Talli and remains under GPL-3.0. See the Windows build and feature guide in [START-HERE.md](START-HERE.md). Windows installers are published in [Releases](https://github.com/SheedaMusalli/Runback-Tournament-Desk/releases).
 
 [![Contributors][contributors-shield]][contributors-url]
 [![Forks][forks-shield]][forks-url]

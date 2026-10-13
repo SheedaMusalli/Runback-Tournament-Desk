@@ -1,31 +1,9 @@
 <template>
-  <v-navigation-drawer app permanent :mini-variant="should_draw_mini">
-    <v-list-item>
-      <v-list-item-icon class="mr-4">
-        <v-icon :size="icon_size">$logo</v-icon>
-      </v-list-item-icon>
-
-      <v-list-item-content>
-        <v-list-item-title class="title">Runback / T8</v-list-item-title>
-        <v-list-item-subtitle>Build by Sheeda Talli</v-list-item-subtitle>
-        <v-list-item-subtitle>Original Runback by <a :href="twitter">Opeik</a></v-list-item-subtitle>
-      </v-list-item-content>
-    </v-list-item>
-
-    <v-divider></v-divider>
-
-    <v-list dense nav>
-      <v-list-item link v-for="item in items" :key="item.title" :to="item.link">
-        <v-list-item-icon>
-          <v-icon>{{ item.icon }}</v-icon>
-        </v-list-item-icon>
-
-        <v-list-item-content>
-          <v-list-item-title>{{ item.title }}</v-list-item-title>
-        </v-list-item-content>
-      </v-list-item>
-    </v-list>
-  </v-navigation-drawer>
+<v-navigation-drawer app permanent width="240" class="workspace-navigation">
+<router-link class="workspace-brand" to="/"><span class="brand-mark">R<span>↗</span></span><span>runback<small>TOURNAMENT DESK</small></span></router-link>
+<span class="nav-label">YOUR WORKSPACE</span><nav class="workspace-links" aria-label="Workspace navigation"><router-link v-for="item in items" :key="item.title" :to="item.link" exact><i :class="'mdi '+item.icon" aria-hidden="true"></i>{{ item.title }}</router-link></nav>
+<div class="workspace-credit"><b>Build by Sheeda Talli</b><br>Original Runback by Opeik<small class="build-stamp">DESIGN 03 · CONNECTED BRACKETS</small></div>
+</v-navigation-drawer>
 </template>
 
 <script lang="ts">

@@ -1,43 +1,15 @@
 <template>
-  <v-row>
-    <v-col cols="12">
-      <header class="desk-heading"><div><div class="eyebrow">TEKKEN 8 / OUTPUT</div><h1>Ready for broadcast<span>.</span></h1><p>Add a Browser Source in OBS at 1920 × 1080, 60 FPS. Keep its transform aligned with the game capture.</p></div></header><div class="hud-note">The scoreboard keeps round-win indicators clear. Set scores are in the top nameplates; tournament stage sits below the timer.</div>
-      <v-container>
-        <v-list>
-          <v-list-item v-for="graphic in graphics" :key="graphic.name">
-            <v-list-item-content>
-              <v-list-item-title> {{ graphic.name }} </v-list-item-title>
-            </v-list-item-content>
-
-            <v-list-item-action>
-              <v-row>
-                <v-btn
-                  class="mx-4 obs-drag-image"
-                  @click="copy_url(format_url(graphic.name, graphic.file))"
-                  >Copy URL</v-btn
-                >
-                <v-btn
-                  class="mr-4 obs-drag-image"
-                  draggable
-                  :href="format_url(graphic.name, graphic.file)"
-                  color="primary"
-                  >Drag into OBS</v-btn
-                >
-              </v-row>
-            </v-list-item-action>
-          </v-list-item>
-        </v-list>
-      </v-container>
-    </v-col>
-  </v-row>
-</template>
+<section class="output-page"><header class="desk-heading"><div><span class="eyebrow">BROADCAST STUDIO</span><h1>Your stream, ready<span>.</span></h1><p>Choose an overlay. Add it to OBS once. Runback keeps it updated.</p></div></header>
+<div class="output-grid"><article v-for="graphic in graphics" :key="graphic.name" class="output-card"><div class="output-preview"><span>{{ graphic.name==='Scoreboard'?'PLAYER ONE':'COMMENTATOR ONE' }}</span><em>{{ graphic.name==='Scoreboard'?'0 : 0':'ON AIR' }}</em><span>{{ graphic.name==='Scoreboard'?'PLAYER TWO':'COMMENTATOR TWO' }}</span></div><span class="eyebrow">1920 × 1080 · TRANSPARENT BACKGROUND</span><h2>{{ graphic.name }}</h2><p>{{ graphic.name==='Scoreboard'?'Player names, flags and set scores. Leaves Tekken 8 round indicators clear.':'Commentator names and social handles, controlled from the manual broadcast desk.' }}</p><div class="output-actions"><v-btn color="primary" @click="copy_url(format_url(graphic.name,graphic.file))">Copy source URL</v-btn><v-btn class="obs-drag-image" draggable :href="format_url(graphic.name,graphic.file)">Drag into OBS</v-btn></div></article></div>
+<div class="output-steps"><span><b>01</b>Add a Browser Source in OBS.</span><span><b>02</b>Paste the URL. Set 1920 × 1080.</span><span><b>03</b>Keep Runback open while broadcasting.</span></div>
+</section></template>
 
 <script lang="ts">
 import { Vue, Component } from "vue-property-decorator"
 
 @Component
 export default class extends Vue {
-  readonly base_url: string = "http://localhost:9090/bundles/runback/graphics/"
+  readonly base_url: string = window.location.origin + "/bundles/runback/graphics/"
   readonly width = 1920
   readonly height = 1080
   readonly drag_offset = 30

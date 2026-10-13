@@ -11,18 +11,27 @@ export function setupOrganizer(nodecg: NodeCG): void {
   setupDiscordApi(nodecg,organizer)
   const shareRouter=nodecg.Router()
   shareRouter.get("/api/v1/events/:id",(req:any,res:any)=>{
-    const event=(organizer.value&&organizer.value.events||[]).find((item:any)=>item.id===req.params.id)
-    if(!event){res.status(404).json({error:"Tournament not found."});return}
-    res.set("Cache-Control","no-store")
-    const names:Record<string,string>={}
-    event.entrants.forEach((entrant:any)=>{names[entrant.id]=entrant.name})
-    res.json({
-      id:event.id,name:event.name,venue:event.venue,date:event.date,format:event.format,champion:names[event.champion]||"",ended:!!event.ended,
-      matches:event.matches.map((match:any)=>({
-        id:match.id,label:match.label,section:match.section,round:match.round,status:match.status,
-        players:match.players.map((player:string)=>names[player]||"To be decided"),scores:match.scores,winner:names[match.winner]||"",ft:match.ft
-      }))
-    })
+    try {
+      // NodeCG 1.x Replicant arrays are observable wrappers, not native arrays.
+      // Take the same plain snapshot used by the command handler before reading.
+      const snapshot:Organizer=JSON.parse(JSON.stringify(organizer.value||emptyOrganizer()))
+      const event=snapshot.events.find(item=>item.id===req.params.id)
+      if(!event){res.status(404).json({error:"Tournament not found."});return}
+      res.set("Cache-Control","no-store")
+      const names:Record<string,string>={}
+      event.entrants.forEach((entrant:any)=>{names[entrant.id]=entrant.name})
+      res.json({
+        id:event.id,name:event.name,venue:event.venue,date:event.date,format:event.format,champion:names[event.champion]||"",ended:!!event.ended,
+        matches:(Array.isArray(event.matches)?event.matches:[]).map((match:any)=>({
+          id:match.id,label:match.label,section:match.section,round:match.round,status:match.status,
+          players:(match.players||[]).map((player:string)=>names[player]||""),scores:match.scores||[0,0],winner:names[match.winner]||"",ft:match.ft,
+          sources:match.sources||[]
+        }))
+      })
+    } catch(error) {
+      nodecg.log.error("Could not publish live bracket:",error)
+      res.status(500).json({error:"The event data could not be loaded. Check the Runback server log."})
+    }
   })
   nodecg.mount("/runback-share",shareRouter)
   nodecg.listenFor("organizer:command",(command:Command,ack:any)=>{

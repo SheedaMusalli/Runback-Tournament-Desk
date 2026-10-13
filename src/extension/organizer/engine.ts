@@ -1,8 +1,8 @@
 // Pure tournament engine. The NodeCG extension owns writes; dashboards send commands.
 import { Operations, emptyOperations, operate } from './operations'
-export type Format = "double" | "single" | "groups"
+export type Format = "double" | "single" | "groups" | "pools"
 export interface Entrant { id: string; name: string; team: string; country: string; checked: boolean; discordId?: string }
-export interface Source { kind: "player" | "winner" | "loser"; id: string }
+export interface Source { kind: "player" | "winner" | "loser" | "pool"; id: string; place?: number }
 export interface Match {
   id: string; label: string; section: string; round: number; sources: Source[];
   players: string[]; status: "waiting" | "ready" | "playing" | "done" | "bye" | "skipped";
@@ -13,6 +13,7 @@ export interface Event {
   operations?: Operations;
   id: string; name: string; venue: string; date: string; preset: string;
   format: Format; ft: number; finalFt: number; longSets: "finals" | "top4" | "top8";
+  poolCount?: number; poolAdvance?: number; finalFormat?: "double" | "single";
   stations: string[]; entrants: Entrant[]; matches: Match[]; started: boolean;
   ended?: boolean; endedAt?: string;
   champion: string; streamMatch: string; checklist: Record<string, boolean>;
@@ -29,6 +30,7 @@ export const PRESETS: Preset[] = [
   {id:"twt",title:"TWT 2026 Dojo-style",tag:"COMMUNITY CIRCUIT",format:"double",ft:2,finalFt:3,longSets:"top4",summary:"First to 3 for winners final, losers semifinal, losers final and grand final.",source:"https://www.bandainamcoent.com/legal/community-events/official-rules-twt",sourceLabel:"TWT 2026 official rules · section 4",notes:"Top 8 first-to-3 can be selected instead before play starts. This preset does not register or certify your event with the Tekken World Tour."},
   {id:"ewc",title:"EWC 2025-inspired",tag:"32-PLAYER INVITATIONAL",format:"groups",ft:2,finalFt:5,longSets:"top8",summary:"32 → 16 → 8. Two GSL group stages, then first-to-5 single elimination.",source:"https://navi.gg/en/tournaments/esports-world-cup-2025-tekken-8/news",sourceLabel:"NAVI's EWC 2025 event format report",notes:"The stage sizes and set lengths follow the published format. Initial seeds use Runback's snake distribution; crossover pairing is fixed. This is a format template, not a replay of official draws or results. No third-place playoff."},
   {id:"single",title:"Quick knockout",tag:"SHORT SESSION",format:"single",ft:2,finalFt:3,longSets:"finals",summary:"One loss to exit. A compact bracket when time is limited.",source:"",sourceLabel:"Runback custom format",notes:"Single elimination with first-to-3 final. This is not an EVO or TWT ruleset."},
+  {id:"tekken-pools",title:"Pools → double elimination",tag:"TEKKEN EVENT DAY",format:"pools",ft:2,finalFt:3,longSets:"top8",summary:"Players start in balanced round-robin pools. The top two from every pool advance into a double-elimination finals bracket.",source:"",sourceLabel:"Runback pool format",notes:"Pool sizes are balanced automatically at about 6–8 players. You can adjust pool count and how many advance before starting."},
 ]
 export const emptyOrganizer = (): Organizer => ({version:1,revision:0,events:[]})
 const check = (condition: any, message: string): void => { if (!condition) throw new Error(message) }
@@ -36,6 +38,7 @@ const text = (value: any, limit = 100): string => String(value == null ? "" : va
 const p = (id: string): Source => ({kind:"player",id})
 const w = (m: Match): Source => ({kind:"winner",id:m.id})
 const l = (m: Match): Source => ({kind:"loser",id:m.id})
+const poolKey = (index:number):string => index<26?String.fromCharCode(65+index):`${String.fromCharCode(64+Math.floor(index/26))}${String.fromCharCode(65+index%26)}`
 export function seedOrder(size: number): number[] {
   let order = [1,2]
   while (order.length < size) { const total=order.length*2+1; order=order.reduce<number[]>((a,n)=>a.concat(n,total-n),[]) }
@@ -43,7 +46,7 @@ export function seedOrder(size: number): number[] {
 }
 export function buildBracket(e: Event): Match[] {
   const entrants=e.entrants.filter(x=>x.checked)
-  check(entrants.length>=2 && entrants.length<=512,"Check in between 2 and 512 players before starting.")
+  check(entrants.length>=(e.format==="pools"?4:2) && entrants.length<=512,e.format==="pools"?"Check in at least 4 players to run pools.":"Check in between 2 and 512 players before starting.")
   check(e.format!=="groups" || entrants.length===32,"The EWC-inspired format needs exactly 32 checked-in players.")
   const matches: Match[]=[]
   const add=(label: string,section: string,round: number,sources: Source[],ft: number,eliminates=false,tier=0): Match=>{
@@ -61,7 +64,64 @@ export function buildBracket(e: Event): Match[] {
     }
     return matches.find(m=>m.id===current[0].id)!
   }
-  if(e.format==="groups") {
+  const double=(sources: Source[],entrantCount:number,sectionPrefix=""):void=>{
+    const size=Math.pow(2,Math.ceil(Math.log2(sources.length)))
+    const seeded=seedOrder(size).map(n=>sources[n-1]||p(""))
+    const k=Math.log2(size), winners: Match[][]=[]
+    let current=seeded
+    const section=(name:string):string=>sectionPrefix?`${sectionPrefix} · ${name}`:name
+    for(let r=0;r<k;r++){
+      const row:Match[]=[]
+      const ft=(r===k-1||(e.longSets==="top8"&&(r>=k-2||entrantCount<=8)))?e.finalFt:e.ft
+      const label=r===k-1?"Winners final":r===k-2?"Winners semifinals":`Winners round ${r+1}`
+      for(let i=0;i<current.length/2;i++)row.push(add(label,section("Winners"),r+1,current.slice(i*2,i*2+2),ft))
+      winners.push(row);current=row.map(w)
+    }
+    let lower:Source[]=[]
+    if(size===2)lower=[l(winners[0][0])]
+    else{
+      let lr=0
+      const losersRow=(sourcesByMatch:Source[][]):Source[]=>{
+        const remaining=sourcesByMatch.length*(lr%2===0?3:2)
+        const long=remaining===2||(e.longSets==="top4"&&remaining<=3)||(e.longSets==="top8"&&remaining<=6)
+        const label=remaining===2?"Losers final":remaining===3?"Losers semifinal":`Losers round ${lr+1}`
+        const row=sourcesByMatch.map(s=>w(add(label,section("Losers"),lr+1,s,long?e.finalFt:e.ft,true,lr+1)))
+        lr++;return row
+      }
+      lower=losersRow(Array.from({length:size/4},(_,i)=>[l(winners[0][i*2]),l(winners[0][i*2+1])]))
+      for(let r=1;r<k;r++){
+        lower=losersRow(lower.map((s,i)=>[s,l(winners[r][lower.length>1?i^1:i])]))
+        if(r<k-1)lower=losersRow(Array.from({length:lower.length/2},(_,i)=>lower.slice(i*2,i*2+2)))
+      }
+    }
+    const final=add("Grand final",section("Finals"),1,[w(winners[k-1][0]),lower[0]],e.finalFt,false,100)
+    const reset=add("Grand final reset",section("Finals"),2,[w(final),l(final)],e.finalFt,true,101);reset.resetOf=final.id
+  }
+  if(e.format==="pools"){
+    const requestedPools=Number(e.poolCount)||Math.max(2,Math.ceil(entrants.length/8))
+    check(requestedPools>=2,"Choose at least 2 pools, or leave the setting at automatic.")
+    const poolCount=Math.min(entrants.length,requestedPools)
+    const advance=Math.max(1,Math.min(4,Number(e.poolAdvance)||2))
+    check(poolCount>=2,"Pools need at least 2 groups. Reduce the number of pools or add more players.")
+    check(Math.ceil(entrants.length/poolCount)>=2,"Each pool needs at least 2 players.")
+    check(poolCount*advance>=2&&poolCount*advance<=entrants.length,"The selected number advancing from each pool must produce at least 2 finals players and cannot exceed your entrants.")
+    const pools:string[][]=Array.from({length:poolCount},()=>[])
+    entrants.forEach((entrant,i)=>{const row=Math.floor(i/poolCount),slot=i%poolCount;pools[row%2===0?slot:poolCount-1-slot].push(entrant.id)})
+    pools.forEach((ids,index)=>{
+      const pool=poolKey(index),players=ids.slice()
+      if(players.length%2)players.push("")
+      for(let round=0;round<players.length-1;round++){
+        for(let i=0;i<players.length/2;i++){
+          const a=players[i],b=players[players.length-1-i]
+          if(a&&b)add(`Pool ${pool} · Round ${round+1}`,`Pool ${pool}`,round+1,[p(a),p(b)],e.ft)
+        }
+        players.splice(1,0,players.pop()!)
+      }
+    })
+    const qualifiers:Source[]=pools.flatMap((_,index)=>Array.from({length:advance},(__,place)=>({kind:"pool" as const,id:poolKey(index),place:place+1})))
+    if(e.finalFormat==="single")single(qualifiers,"Finals · Knockout",e.finalFt,50)
+    else double(qualifiers,qualifiers.length,"Finals")
+  } else if(e.format==="groups") {
     const gsl=(sources: Source[],section: string,tier: number): Source[]=>{
       const a=add("Opening match 1",section,1,[sources[0],sources[3]],e.ft)
       const b=add("Opening match 2",section,1,[sources[1],sources[2]],e.ft)
@@ -114,6 +174,19 @@ export function buildBracket(e: Event): Match[] {
   }
   return matches
 }
+function poolPlacements(e:Event,pool:string):Array<{id:string;wins:number;gameDiff:number;seed:number}>{
+  const matches=e.matches.filter(m=>m.section===`Pool ${pool}`)
+  const ids=Array.from(new Set(matches.flatMap(m=>m.players.filter(Boolean))))
+  const stats=ids.map(id=>({id,wins:0,gameDiff:0,seed:e.entrants.findIndex(p=>p.id===id)}))
+  matches.filter(m=>m.status==="done").forEach(m=>{
+    const winner=stats.find(p=>p.id===m.winner),loser=stats.find(p=>p.id===m.loser)
+    if(winner)winner.wins++
+    const a=stats.find(p=>p.id===m.players[0]),b=stats.find(p=>p.id===m.players[1])
+    if(a&&b){a.gameDiff+=(m.scores[0]||0)-(m.scores[1]||0);b.gameDiff+=(m.scores[1]||0)-(m.scores[0]||0)}
+    void loser
+  })
+  return stats.sort((a,b)=>b.wins-a.wins||b.gameDiff-a.gameDiff||a.seed-b.seed)
+}
 export function resolve(e: Event): void {
   const index: Record<string,Match>={};e.matches.forEach(m=>index[m.id]=m)
   for(const m of e.matches) {
@@ -126,6 +199,11 @@ export function resolve(e: Event): void {
     let ready=true
     const players=m.sources.map(s=>{
       if(s.kind==="player")return s.id
+      if(s.kind==="pool"){
+        const poolMatches=e.matches.filter(match=>match.section===`Pool ${s.id}`)
+        if(!poolMatches.length||poolMatches.some(match=>!['done','bye'].includes(match.status))){ready=false;return ""}
+        return poolPlacements(e,s.id)[(s.place||1)-1]?.id||""
+      }
       const source=index[s.id]
       if(!source || !["done","bye"].includes(source.status)) {ready=false;return ""}
       return s.kind==="winner"?source.winner:source.loser
@@ -150,11 +228,19 @@ export function standings(e: Event): Array<{id:string;place:number;wins:number;l
     const ids=buckets[t].filter(id=>!ordered.some(x=>x.id===id))
     ids.forEach(id=>ordered.push({id,place:rank}));rank+=ids.length
   })
+  if(e.format==="pools"){
+    const count=Math.max(2,Number(e.poolCount)||Math.ceil(e.entrants.filter(p=>p.checked).length/8))
+    const poolRanks=Array.from({length:count},(_,i)=>poolKey(i)).flatMap(pool=>poolPlacements(e,pool).map((entrant,rank)=>({id:entrant.id,rank:rank+1,seed:entrant.seed})))
+    poolRanks.filter(p=>!ordered.some(x=>x.id===p.id)).sort((a,b)=>a.rank-b.rank||a.seed-b.seed).forEach(p=>ordered.push({id:p.id,place:ordered.length+1}))
+  }
   return ordered.map(x=>({...x,wins:e.matches.filter(m=>m.status==="done" && m.winner===x.id).length,losses:e.matches.filter(m=>m.status==="done" && m.loser===x.id).length}))
 }
 function settings(e: Event,d: any): void {
   e.name=text(d.name)||e.name;e.venue=text(d.venue);e.date=text(d.date,30)
-  if(d.format!==undefined) {check(["double","single","groups"].includes(d.format),"Choose a supported format.");e.format=d.format}
+  if(d.format!==undefined) {check(["double","single","groups","pools"].includes(d.format),"Choose a supported format.");e.format=d.format}
+  if(d.poolCount!==undefined){check(Number.isInteger(d.poolCount)&&d.poolCount>=0&&d.poolCount<=64,"Pool count must be automatic or between 2 and 64.");e.poolCount=d.poolCount}
+  if(d.poolAdvance!==undefined){check(Number.isInteger(d.poolAdvance)&&d.poolAdvance>=1&&d.poolAdvance<=4,"Choose between 1 and 4 players advancing from each pool.");e.poolAdvance=d.poolAdvance}
+  if(d.finalFormat!==undefined){check(["double","single"].includes(d.finalFormat),"Choose single or double elimination for finals.");e.finalFormat=d.finalFormat}
   for(const key of ["ft","finalFt"] as const) if(d[key]!==undefined) {check(Number.isInteger(d[key])&&d[key]>=1&&d[key]<=9,"Set length must be between 1 and 9 games.");e[key]=d[key]}
   if(d.longSets!==undefined){check(["finals","top4","top8"].includes(d.longSets),"Choose when longer sets begin.");e.longSets=d.longSets}
   if(d.stations!==undefined) {
@@ -174,7 +260,7 @@ export function reduce(state: Organizer, command: Command, id: string, at: strin
   } else if(command.action==="create") {
     check(next.events.length<100,"Export older events before adding more. This workspace holds up to 100 events.")
     const preset=PRESETS.find(p=>p.id===d.preset)||PRESETS[0]
-    const e: Event={id,name:text(d.name)||"Untitled tournament",venue:"",date:"",preset:preset.id,format:preset.format,ft:preset.ft,finalFt:preset.finalFt,longSets:preset.longSets,stations:["Stream","Station 2","Station 3","Station 4"],entrants:[],matches:[],started:false,ended:false,champion:"",streamMatch:"",checklist:{},history:[],results:[]}
+    const e: Event={id,name:text(d.name)||"Untitled tournament",venue:"",date:"",preset:preset.id,format:preset.format,ft:preset.ft,finalFt:preset.finalFt,longSets:preset.longSets,poolCount:0,poolAdvance:2,finalFormat:"double",stations:["Stream","Station 2","Station 3","Station 4"],entrants:[],matches:[],started:false,ended:false,champion:"",streamMatch:"",checklist:{},history:[],results:[]}
     settings(e,{...d,format:preset.format,ft:preset.ft,finalFt:preset.finalFt,longSets:preset.longSets})
     e.history.push({at,text:"Tournament created"});next.events.push(e)
   } else if(command.action==="deleteEvent") {

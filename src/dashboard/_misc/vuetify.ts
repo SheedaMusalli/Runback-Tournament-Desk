@@ -10,15 +10,15 @@ Vue.use(Vuetify)
 
 export default new Vuetify({
   theme: {
-    dark: true,
+    dark: false,
     themes: {
       light: {
-        primary: "#d93254",
-        accent: "#43d9ee",
+        primary: "#7155dc",
+        accent: "#369aa8",
       },
       dark: {
-        primary: "#d93254",
-        accent: "#43d9ee",
+        primary: "#7155dc",
+        accent: "#369aa8",
       },
     },
   },

@@ -1,4 +1,6 @@
 import "./share.css"
+import "../runback/organizer/bracket-tree.css"
+import { bracketLayout } from "../runback/organizer/bracket-layout"
 
 interface PublicMatch {
   id: string
@@ -10,6 +12,7 @@ interface PublicMatch {
   scores: number[]
   winner: string
   ft: number
+  sources?: Array<{ kind: string; id: string; place?: number }>
 }
 
 interface PublicEvent {
@@ -30,6 +33,7 @@ const safe = (value: string): string => String(value || "").replace(/[&<>"']/g, 
 let selectedSection = ""
 
 function render(event: PublicEvent): void {
+  const scrollTop = document.getElementById("bracket")?.scrollTop || 0
   const scrollLeft = document.getElementById("bracket")?.scrollLeft || 0
   const matches = event.matches.filter((m) => m.status !== "skipped")
   const sections = Array.from(new Set(matches.map((m) => m.section)))
@@ -48,28 +52,20 @@ function render(event: PublicEvent): void {
     button.classList.add("selected")
     const filtered = button.dataset.section ? matches.filter((m) => m.section === button.dataset.section) : matches
     const bracket = document.getElementById("bracket")
-    if (bracket) bracket.innerHTML = renderColumns(filtered)
+    if (bracket) {
+      bracket.innerHTML = renderColumns(filtered)
+    }
   }))
   const bracket = document.getElementById("bracket")
-  if (bracket) bracket.scrollLeft = scrollLeft
+  if (bracket) { bracket.scrollLeft = scrollLeft; bracket.scrollTop = scrollTop }
 }
 
-function renderColumns(matches: PublicMatch[]): string {
-  const groups: { key: string; section: string; round: number; label: string; matches: PublicMatch[] }[] = []
-  matches.forEach((match) => {
-    const key = `${match.section}/${match.round}`
-    let group = groups.find((item) => item.key === key)
-    if (!group) {
-      group = { key, section: match.section, round: match.round, label: match.label, matches: [] }
-      groups.push(group)
-    }
-    group.matches.push(match)
-  })
-  if (!groups.length) return `<div class="empty">No matches are available in this section yet.</div>`
-  return groups.map((group) => `<section class="round-column"><header class="round-heading"><div><b>${safe(group.section)}</b><span>${safe(group.label)}</span></div><small>${group.matches.length} ${group.matches.length === 1 ? "set" : "sets"}</small></header>
-    ${group.matches.map((match) => `<article class="match ${safe(match.status)}"><header><span>${safe(match.id)} · ${safe(match.label)}</span><b>FT${match.ft}</b></header>
-      ${[0, 1].map((i) => `<div class="player ${match.winner && match.players[i] === match.winner ? "winner" : ""}"><span class="side side-${i}">P${i + 1}</span><span class="player-name">${safe(match.players[i] || "To be decided")}</span><b>${match.status === "bye" ? "—" : Number(match.scores[i] || 0)}</b></div>`).join("")}
-      <footer><span class="status status-${safe(match.status)}">${safe(match.status === "ready" ? "Ready" : match.status === "playing" ? "In progress" : match.status === "done" ? "Complete" : match.status === "bye" ? "Bye" : "Waiting")}</span><span>First to ${match.ft}</span></footer></article>`).join("")}</section>`).join("")
+function renderColumns(matches:PublicMatch[]):string {
+  if(!matches.length)return '<div class="empty">No matches are available in this section yet.</div>'
+  const layout=bracketLayout(matches)
+  const bands=layout.bands.map(b=>`<section class="tree-band" style="top:${b.top}px;width:${layout.width}px;height:${b.height}px"><div class="tree-band-label">${safe(b.name)}<span>${b.count} sets</span></div>${b.rounds.map(r=>`<header class="tree-round" style="left:${r.x}px"><b>${safe(r.label)}</b><span>Best of ${r.ft*2-1}</span></header>`).join('')}</section>`).join('')
+  const nodes=layout.nodes.map(n=>{const m=n.match;return `<article class="tree-set ${safe(m.status)}" style="left:${n.x}px;top:${n.y}px"><span class="tree-id">${safe(m.id)}</span>${[0,1].map(i=>{const source=(m.sources||[])[i];const pending=source&&source.kind!=='player'?(source.kind==='pool'?`Pool ${source.id} · #${source.place||1}`:`${source.kind==='winner'?'Winner':'Loser'} of ${source.id}`):'Bye';return `<span class="tree-player ${m.winner&&m.winner===m.players[i]?'won':''} ${!m.players[i]?'pending':''}"><span class="tree-seed"></span><span class="tree-name" title="${safe(m.players[i]||pending)}">${safe(m.players[i]||pending)}</span><strong>${['waiting','skipped','bye'].includes(m.status)?'–':Number(m.scores[i]||0)}</strong></span>`}).join('')}${m.status==='playing'?'<span class="tree-live">● In progress</span>':''}</article>`}).join('')
+  return `<div class="tree-canvas" style="width:${layout.width}px;height:${layout.height}px">${bands}<svg class="tree-lines" width="${layout.width}" height="${layout.height}" aria-hidden="true">${layout.edges.map(d=>`<path d="${d}"/>`).join('')}</svg>${nodes}</div>`
 }
 
 async function refresh(): Promise<void> {
@@ -78,11 +74,17 @@ async function refresh(): Promise<void> {
     return
   }
   try {
-    const response = await fetch(`/runback-share/api/v1/events/${encodeURIComponent(eventId)}`, { cache: "no-store" })
-    if (!response.ok) throw new Error(response.status === 404 ? "Tournament not found. Check the shared link." : "Runback is not reachable right now.")
+    const endpoint = new URL(`/runback-share/api/v1/events/${encodeURIComponent(eventId)}`, window.location.origin)
+    const response = await fetch(endpoint.toString(), { cache: "no-store", credentials: "same-origin" })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({})) as { error?: string }
+      if (response.status === 404) throw new Error("Tournament not found. Check the shared link.")
+      throw new Error(body.error ? `${body.error} (HTTP ${response.status})` : `Runback returned HTTP ${response.status} ${response.statusText}.`)
+    }
     render(await response.json() as PublicEvent)
   } catch (error) {
-    app.innerHTML = `<main class="message"><b>Bracket unavailable.</b><span>${safe((error as Error).message || "Try again later.")}</span><button id="retry">Try again</button></main>`
+    const reason = error instanceof TypeError ? "Cannot connect to Runback. Open the Runback app and keep it running, then reload this page." : ((error as Error).message || "Try again later.")
+    app.innerHTML = `<main class="message"><b>Bracket unavailable.</b><span>${safe(reason)}</span><button id="retry">Try again</button></main>`
     document.getElementById("retry")?.addEventListener("click", () => { void refresh() })
   }
 }

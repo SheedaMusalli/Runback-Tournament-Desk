@@ -1,9 +1,9 @@
 <template>
-  <v-app>
+  <v-app class="runback-desk">
     <navigation v-if="$route.path !== '/'" />
     <v-main>
       <router-view v-if="$route.path === '/'"></router-view>
-      <v-container v-else fluid fill-height class="align-start">
+      <v-container v-else fluid fill-height class="align-start workspace-page">
         <router-view></router-view>
       </v-container>
     </v-main>
@@ -55,6 +55,8 @@ export default class extends Vue {
     } else {
       this.os_dark_mode = false
     }
+
+    this.$vuetify.theme.dark = this.should_use_dark_mode(this.appearance)
 
     window
       .matchMedia("(prefers-color-scheme: dark)")

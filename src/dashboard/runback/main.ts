@@ -6,6 +6,7 @@ import router from "../_misc/vue-router"
 import App from "./main.vue"
 import waitForReplicants from "src/dashboard/runback/../../browser_shared/store"
 import "./runback.css"
+import "./desk-design.css"
 
 import Panel from "src/dashboard/runback/components/panel.vue"
 import Navigation from "src/dashboard/runback/components/navigation.vue"
