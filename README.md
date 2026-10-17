@@ -54,7 +54,7 @@ In **Bracket**, select **Share this live bracket** to copy a read-only URL. A `l
 
 ## Optional Discord integration
 
-Runback includes a locally authenticated bridge API that a separate Discord companion bot can use for match calls and results. **The companion bot, Discord bot token, and server credentials are not included in this repository.** The bridge is disabled until an administrator configures it. See [START-HERE.md](START-HERE.md) for the boundary and setup notes.
+Runback includes a locally authenticated bridge API for match calls and results. The companion bot source is in [`discord-bot/`](discord-bot/); its setup guide and `.env.example` are included. **Live bot tokens, API secrets, exported member lists, local bot state, and installed dependencies are intentionally excluded.** Create your own `.env` from `.env.example` and configure the matching Runback bridge secret locally. See [START-HERE.md](START-HERE.md) for Runback-side setup notes.
 
 ## Build from source
 

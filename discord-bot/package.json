@@ -1,0 +1,14 @@
+{
+  "name": "runback-discord-companion",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Discord slash-command bot for the local Runback tournament desk",
+  "engines": { "node": ">=24.17.0" },
+  "scripts": {
+    "start": "node --env-file=.env bot.js",
+    "deploy": "node --env-file=.env deploy-commands.js",
+    "export:players": "node --env-file=.env export-members.js",
+    "test": "node --test"
+  },
+  "dependencies": { "discord.js": "14.27.0" }
+}
